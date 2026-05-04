@@ -9,12 +9,15 @@
     table { border-collapse: collapse; width: 100%; }
     th, td { border: 1px solid #ccc; padding: 8px; }
     th { background: #f4f4f4; }
+    .info { margin-bottom: 10px; color: #555; }
   </style>
 </head>
 <body>
 
 <h2>Buscar afiliado</h2>
-<input type="text" id="buscador" placeholder="Escribe un nombre...">
+<input type="text" id="buscador" placeholder="Escribe nombre, teléfono, etc...">
+
+<div class="info" id="info"></div>
 
 <table>
   <thead>
@@ -32,43 +35,90 @@
 
 <script>
 let datos = [];
+let timeout;
+const LIMITE = 50;
 
+// Cargar datos
 fetch('datos.json')
   .then(res => res.json())
   .then(data => {
     datos = data;
-    console.log("Datos cargados:", datos); // DEBUG
-    mostrarDatos(data);
+    console.log("Datos cargados:", datos);
+    mostrarDatos(datos);
   })
   .catch(err => console.error("Error cargando JSON:", err));
 
+// Normalizar estructura
+function normalizar(p) {
+  return {
+    id: p.N_Afil || p["N°Afil"] || "",
+    nombre: p.Nombre || p["Apellido y Nombre"] || "",
+    direccion: p.Direccion || p["Dirección"] || "",
+    telefono: p.Telefono || p["Teléfono"] || "",
+    email: p.Email || p["gmail"] || "",
+    dirigente: p.Dirigente || p["dirigente"] || ""
+  };
+}
+
+// Limpiar texto (quita tildes y normaliza)
+function limpiarTexto(texto) {
+  return (texto || "")
+    .toString()
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .trim();
+}
+
+// Mostrar datos
 function mostrarDatos(lista) {
   const tabla = document.getElementById('tabla');
-  tabla.innerHTML = '';
+  const info = document.getElementById('info');
 
-  lista.forEach(p => {
-    tabla.innerHTML += `
+  const limitados = lista.slice(0, LIMITE);
+
+  let html = '';
+
+  limitados.forEach(p => {
+    const d = normalizar(p);
+
+    html += `
       <tr>
-        <td>${p.N_Afil || p["N°Afil"] || ""}</td>
-        <td>${p.Nombre || p["Apellido y Nombre"] || ""}</td>
-        <td>${p.Direccion || p["Dirección"] || ""}</td>
-        <td>${p.Telefono || p["Teléfono"] || ""}</td>
-        <td>${p.Email || p["gmail"] || ""}</td>
-        <td>${p.Dirigente || p["dirigente"] || ""}</td>
+        <td>${d.id}</td>
+        <td>${d.nombre}</td>
+        <td>${d.direccion}</td>
+        <td>${d.telefono}</td>
+        <td>${d.email}</td>
+        <td>${d.dirigente}</td>
       </tr>
     `;
   });
+
+  tabla.innerHTML = html;
+  info.textContent = `Mostrando ${limitados.length} de ${lista.length} resultados`;
 }
 
+// Buscador optimizado
 document.getElementById('buscador').addEventListener('keyup', e => {
-  const texto = e.target.value.toLowerCase();
+  clearTimeout(timeout);
 
-  const filtrados = datos.filter(p => {
-    const nombre = (p.Nombre || p["Apellido y Nombre"] || "").toLowerCase();
-    return nombre.includes(texto);
-  });
+  timeout = setTimeout(() => {
+    const texto = limpiarTexto(e.target.value);
 
-  mostrarDatos(filtrados);
+    const filtrados = datos.filter(p => {
+      const d = normalizar(p);
+
+      return (
+        limpiarTexto(d.nombre).includes(texto) ||
+        limpiarTexto(d.telefono).includes(texto) ||
+        limpiarTexto(d.direccion).includes(texto) ||
+        limpiarTexto(d.email).includes(texto) ||
+        limpiarTexto(d.dirigente).includes(texto)
+      );
+    });
+
+    mostrarDatos(filtrados);
+  }, 300);
 });
 </script>
 
