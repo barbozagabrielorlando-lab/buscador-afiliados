@@ -2,14 +2,82 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Listado de Afiliados</title>
+
   <style>
-    body { font-family: Arial; padding: 20px; }
-    input { padding: 10px; width: 300px; margin-bottom: 20px; }
-    table { border-collapse: collapse; width: 100%; }
-    th, td { border: 1px solid #ccc; padding: 8px; }
-    th { background: #f4f4f4; }
-    .info { margin-bottom: 10px; color: #555; }
+    body {
+      font-family: Arial;
+      padding: 10px;
+      margin: 0;
+    }
+
+    h2 {
+      margin-top: 0;
+    }
+
+    input {
+      padding: 12px;
+      width: 100%;
+      font-size: 16px;
+      margin-bottom: 15px;
+      box-sizing: border-box;
+    }
+
+    .info {
+      margin-bottom: 10px;
+      color: #555;
+      font-size: 14px;
+    }
+
+    /* TABLA (desktop) */
+    table {
+      border-collapse: collapse;
+      width: 100%;
+    }
+
+    th, td {
+      border: 1px solid #ccc;
+      padding: 8px;
+      font-size: 14px;
+    }
+
+    th {
+      background: #f4f4f4;
+    }
+
+    /* TARJETAS (mobile) */
+    .cards {
+      display: none;
+    }
+
+    .card {
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      padding: 10px;
+      margin-bottom: 10px;
+      background: #fafafa;
+    }
+
+    .card div {
+      margin-bottom: 4px;
+      font-size: 14px;
+    }
+
+    .card strong {
+      color: #333;
+    }
+
+    /* RESPONSIVE */
+    @media (max-width: 768px) {
+      table {
+        display: none;
+      }
+
+      .cards {
+        display: block;
+      }
+    }
   </style>
 </head>
 <body>
@@ -19,6 +87,7 @@
 
 <div class="info" id="info"></div>
 
+<!-- TABLA -->
 <table>
   <thead>
     <tr>
@@ -33,22 +102,23 @@
   <tbody id="tabla"></tbody>
 </table>
 
+<!-- TARJETAS MOBILE -->
+<div id="cards" class="cards"></div>
+
 <script>
 let datos = [];
 let timeout;
 const LIMITE = 50;
 
 // Cargar datos
-fetch('datos.json')
+fetch('datos.json?v=' + new Date().getTime())
   .then(res => res.json())
   .then(data => {
     datos = data;
-    console.log("Datos cargados:", datos);
     mostrarDatos(datos);
-  })
-  .catch(err => console.error("Error cargando JSON:", err));
+  });
 
-// Normalizar estructura
+// Normalizar
 function normalizar(p) {
   return {
     id: p.N_Afil || p["N°Afil"] || "",
@@ -60,7 +130,7 @@ function normalizar(p) {
   };
 }
 
-// Limpiar texto (quita tildes y normaliza)
+// Limpiar texto
 function limpiarTexto(texto) {
   return (texto || "")
     .toString()
@@ -73,16 +143,19 @@ function limpiarTexto(texto) {
 // Mostrar datos
 function mostrarDatos(lista) {
   const tabla = document.getElementById('tabla');
+  const cards = document.getElementById('cards');
   const info = document.getElementById('info');
 
   const limitados = lista.slice(0, LIMITE);
 
-  let html = '';
+  let htmlTabla = '';
+  let htmlCards = '';
 
   limitados.forEach(p => {
     const d = normalizar(p);
 
-    html += `
+    // tabla
+    htmlTabla += `
       <tr>
         <td>${d.id}</td>
         <td>${d.nombre}</td>
@@ -92,13 +165,26 @@ function mostrarDatos(lista) {
         <td>${d.dirigente}</td>
       </tr>
     `;
+
+    // cards (mobile)
+    htmlCards += `
+      <div class="card">
+        <div><strong>${d.nombre}</strong></div>
+        <div>📞 ${d.telefono}</div>
+        <div>📍 ${d.direccion}</div>
+        <div>✉️ ${d.email}</div>
+        <div>👤 ${d.dirigente}</div>
+      </div>
+    `;
   });
 
-  tabla.innerHTML = html;
+  tabla.innerHTML = htmlTabla;
+  cards.innerHTML = htmlCards;
+
   info.textContent = `Mostrando ${limitados.length} de ${lista.length} resultados`;
 }
 
-// Buscador optimizado
+// Buscador
 document.getElementById('buscador').addEventListener('keyup', e => {
   clearTimeout(timeout);
 
