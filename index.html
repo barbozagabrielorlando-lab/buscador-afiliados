@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Listado de Afiliados</title>
+  <style>
+    body { font-family: Arial; padding: 20px; }
+    input { padding: 10px; width: 300px; margin-bottom: 20px; }
+    table { border-collapse: collapse; width: 100%; }
+    th, td { border: 1px solid #ccc; padding: 8px; }
+    th { background: #f4f4f4; }
+  </style>
+</head>
+<body>
+
+<h2>Buscar afiliado</h2>
+<input type="text" id="buscador" placeholder="Escribe un nombre...">
+
+<table>
+  <thead>
+    <tr>
+      <th>N°</th>
+      <th>Nombre</th>
+      <th>Dirección</th>
+      <th>Teléfono</th>
+      <th>Email</th>
+      <th>Dirigente</th>
+    </tr>
+  </thead>
+  <tbody id="tabla"></tbody>
+</table>
+
+<script>
+let datos = [];
+
+fetch('datos.json')
+  .then(res => res.json())
+  .then(data => {
+    datos = data;
+    console.log("Datos cargados:", datos); // DEBUG
+    mostrarDatos(data);
+  })
+  .catch(err => console.error("Error cargando JSON:", err));
+
+function mostrarDatos(lista) {
+  const tabla = document.getElementById('tabla');
+  tabla.innerHTML = '';
+
+  lista.forEach(p => {
+    tabla.innerHTML += `
+      <tr>
+        <td>${p.N_Afil || p["N°Afil"] || ""}</td>
+        <td>${p.Nombre || p["Apellido y Nombre"] || ""}</td>
+        <td>${p.Direccion || p["Dirección"] || ""}</td>
+        <td>${p.Telefono || p["Teléfono"] || ""}</td>
+        <td>${p.Email || p["gmail"] || ""}</td>
+        <td>${p.Dirigente || p["dirigente"] || ""}</td>
+      </tr>
+    `;
+  });
+}
+
+document.getElementById('buscador').addEventListener('keyup', e => {
+  const texto = e.target.value.toLowerCase();
+
+  const filtrados = datos.filter(p => {
+    const nombre = (p.Nombre || p["Apellido y Nombre"] || "").toLowerCase();
+    return nombre.includes(texto);
+  });
+
+  mostrarDatos(filtrados);
+});
+</script>
+
+</body>
+</html>
