@@ -6,51 +6,15 @@
   <title>Listado de Afiliados</title>
 
   <style>
-    body {
-      font-family: Arial;
-      padding: 10px;
-      margin: 0;
-    }
+    body { font-family: Arial; padding: 10px; margin: 0; }
+    input { padding: 12px; width: 100%; font-size: 16px; margin-bottom: 15px; }
+    .info { margin-bottom: 10px; color: #555; font-size: 14px; }
 
-    h2 {
-      margin-top: 0;
-    }
+    table { border-collapse: collapse; width: 100%; }
+    th, td { border: 1px solid #ccc; padding: 8px; font-size: 14px; }
+    th { background: #f4f4f4; }
 
-    input {
-      padding: 12px;
-      width: 100%;
-      font-size: 16px;
-      margin-bottom: 15px;
-      box-sizing: border-box;
-    }
-
-    .info {
-      margin-bottom: 10px;
-      color: #555;
-      font-size: 14px;
-    }
-
-    /* TABLA (desktop) */
-    table {
-      border-collapse: collapse;
-      width: 100%;
-    }
-
-    th, td {
-      border: 1px solid #ccc;
-      padding: 8px;
-      font-size: 14px;
-    }
-
-    th {
-      background: #f4f4f4;
-    }
-
-    /* TARJETAS (mobile) */
-    .cards {
-      display: none;
-    }
-
+    .cards { display: none; }
     .card {
       border: 1px solid #ddd;
       border-radius: 8px;
@@ -59,66 +23,93 @@
       background: #fafafa;
     }
 
-    .card div {
-      margin-bottom: 4px;
-      font-size: 14px;
-    }
-
-    .card strong {
-      color: #333;
-    }
-
-    /* RESPONSIVE */
     @media (max-width: 768px) {
-      table {
-        display: none;
-      }
-
-      .cards {
-        display: block;
-      }
+      table { display: none; }
+      .cards { display: block; }
     }
   </style>
 </head>
 <body>
 
-<h2>Buscar afiliado</h2>
-<input type="text" id="buscador" placeholder="Escribe nombre, teléfono, etc...">
+<!-- 🔐 LOGIN -->
+<div id="loginBox">
+  <h2>Acceso</h2>
+  <input type="email" id="email" placeholder="Email">
+  <input type="password" id="password" placeholder="Contraseña">
+  <button onclick="login()">Ingresar</button>
+</div>
 
-<div class="info" id="info"></div>
+<!-- 🔎 APP -->
+<div id="app" style="display:none;">
+  <h2>Buscar afiliado</h2>
+  <input type="text" id="buscador" placeholder="Escribe nombre, teléfono, etc...">
+  <div class="info" id="info"></div>
 
-<!-- TABLA -->
-<table>
-  <thead>
-    <tr>
-      <th>N°</th>
-      <th>Nombre</th>
-      <th>Dirección</th>
-      <th>Teléfono</th>
-      <th>Email</th>
-      <th>Dirigente</th>
-    </tr>
-  </thead>
-  <tbody id="tabla"></tbody>
-</table>
+  <table>
+    <thead>
+      <tr>
+        <th>N°</th>
+        <th>Nombre</th>
+        <th>Dirección</th>
+        <th>Teléfono</th>
+        <th>Email</th>
+        <th>Dirigente</th>
+      </tr>
+    </thead>
+    <tbody id="tabla"></tbody>
+  </table>
 
-<!-- TARJETAS MOBILE -->
-<div id="cards" class="cards"></div>
+  <div id="cards" class="cards"></div>
+</div>
 
-<script>
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getAuth, signInWithEmailAndPassword, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+/* 🔴 COMPLETAR ESTO DESDE FIREBASE */
+const firebaseConfig = {
+  apiKey: "AIzaSyBukDOR_dpgeAQehTSL8ebazhv7pbZ9aTo",
+  authDomain: "buscador-afiliado-dbb3f.firebaseapp.com",
+  projectId: "buscador-afiliado-dbb3f"
+};
+/* 🔴 FIN */
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+
 let datos = [];
 let timeout;
 const LIMITE = 50;
 
-// Cargar datos
-fetch('datos.json?v=' + new Date().getTime())
-  .then(res => res.json())
-  .then(data => {
-    datos = data;
-    mostrarDatos(datos);
-  });
+/* 🔐 LOGIN */
+window.login = function() {
+  const email = document.getElementById('email').value;
+  const password = document.getElementById('password').value;
 
-// Normalizar
+  signInWithEmailAndPassword(auth, email, password)
+    .then(() => {})
+    .catch(error => alert(error.message));
+};
+
+/* 🔁 SESIÓN */
+onAuthStateChanged(auth, user => {
+  if (user) {
+    document.getElementById('loginBox').style.display = "none";
+    document.getElementById('app').style.display = "block";
+    cargarDatos();
+  }
+});
+
+/* 📡 FIREBASE (REEMPLAZA fetch) */
+async function cargarDatos() {
+  const querySnapshot = await getDocs(collection(db, "afiliados"));
+  datos = querySnapshot.docs.map(doc => doc.data());
+  mostrarDatos(datos);
+}
+
+/* 🔧 TU LÓGICA ORIGINAL (INTACTA) */
 function normalizar(p) {
   return {
     id: p.N_Afil || p["N°Afil"] || "",
@@ -130,7 +121,6 @@ function normalizar(p) {
   };
 }
 
-// Limpiar texto
 function limpiarTexto(texto) {
   return (texto || "")
     .toString()
@@ -140,7 +130,6 @@ function limpiarTexto(texto) {
     .trim();
 }
 
-// Mostrar datos
 function mostrarDatos(lista) {
   const tabla = document.getElementById('tabla');
   const cards = document.getElementById('cards');
@@ -154,7 +143,6 @@ function mostrarDatos(lista) {
   limitados.forEach(p => {
     const d = normalizar(p);
 
-    // tabla
     htmlTabla += `
       <tr>
         <td>${d.id}</td>
@@ -166,7 +154,6 @@ function mostrarDatos(lista) {
       </tr>
     `;
 
-    // cards (mobile)
     htmlCards += `
       <div class="card">
         <div><strong>${d.nombre}</strong></div>
@@ -180,11 +167,10 @@ function mostrarDatos(lista) {
 
   tabla.innerHTML = htmlTabla;
   cards.innerHTML = htmlCards;
-
   info.textContent = `Mostrando ${limitados.length} de ${lista.length} resultados`;
 }
 
-// Buscador
+/* 🔎 BUSCADOR */
 document.getElementById('buscador').addEventListener('keyup', e => {
   clearTimeout(timeout);
 
